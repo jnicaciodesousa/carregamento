@@ -1,0 +1,152 @@
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+
+export default function ControleCarregamentoApp() {
+  const [formData, setFormData] = useState({
+    data: "",
+    motorista: "",
+    telefone: "",
+    placa: "",
+    tipoVeiculo: "",
+    transportadora: "",
+    chegada: "",
+    saida: "",
+    pedido: "",
+    cliente: "",
+    endereco: "",
+    tipoCarga: "",
+    temperatura: "",
+    produtos: [],
+    produtoTemp: { codigo: "", descricao: "", quantidadePrevista: "", quantidadeCarregada: "", unidade: "" },
+    conferente: "",
+    lacre: "",
+    documentosOk: false,
+    observacoes: ""
+  });
+
+  const adicionarProduto = () => {
+    if (!formData.produtoTemp.descricao) return;
+    setFormData({
+      ...formData,
+      produtos: [...formData.produtos, formData.produtoTemp],
+      produtoTemp: { codigo: "", descricao: "", quantidadePrevista: "", quantidadeCarregada: "", unidade: "" }
+    });
+  };
+
+  const exportarParaExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(formData.produtos);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Produtos");
+    XLSX.writeFile(wb, `carregamento_${formData.data}.xlsx`);
+  };
+
+  const exportarParaPDF = () => {
+    const doc = new jsPDF();
+    doc.text("Controle de Carregamento de Caminhão", 14, 20);
+    doc.text(`Data: ${formData.data}`, 14, 30);
+    doc.text(`Motorista: ${formData.motorista}`, 14, 38);
+    doc.text(`Telefone: ${formData.telefone}`, 14, 46);
+    doc.text(`Placa: ${formData.placa}`, 14, 54);
+    doc.text(`Tipo Veículo: ${formData.tipoVeiculo}`, 14, 62);
+    doc.text(`Transportadora: ${formData.transportadora}`, 14, 70);
+    doc.text(`Chegada: ${formData.chegada}`, 14, 78);
+    doc.text(`Saída: ${formData.saida}`, 14, 86);
+    doc.text(`Pedido/NF: ${formData.pedido}`, 14, 94);
+    doc.text(`Cliente: ${formData.cliente}`, 14, 102);
+    doc.text(`Endereço: ${formData.endereco}`, 14, 110);
+    doc.text(`Tipo Carga: ${formData.tipoCarga}`, 14, 118);
+    doc.text(`Temperatura: ${formData.temperatura}`, 14, 126);
+    doc.text(`Conferente: ${formData.conferente}`, 14, 134);
+    doc.text(`Lacre: ${formData.lacre}`, 14, 142);
+    doc.text(`Observações: ${formData.observacoes}`, 14, 150);
+
+    doc.autoTable({
+      startY: 160,
+      head: [["Código", "Descrição", "Qtd. Prevista", "Qtd. Carregada", "Unidade"]],
+      body: formData.produtos.map(p => [p.codigo, p.descricao, p.quantidadePrevista, p.quantidadeCarregada, p.unidade])
+    });
+
+    doc.save(`carregamento_${formData.data}.pdf`);
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      <h1 className="text-2xl font-bold">Controle de Carregamento de Caminhão</h1>
+      <Card>
+        <CardContent className="grid grid-cols-2 gap-4 pt-6">
+          <Input placeholder="Data do carregamento" type="date" onChange={(e) => setFormData({ ...formData, data: e.target.value })} />
+          <Input placeholder="Nome do motorista" onChange={(e) => setFormData({ ...formData, motorista: e.target.value })} />
+          <Input placeholder="Telefone do motorista" onChange={(e) => setFormData({ ...formData, telefone: e.target.value })} />
+          <Input placeholder="Placa do caminhão" onChange={(e) => setFormData({ ...formData, placa: e.target.value })} />
+          <Input placeholder="Tipo de veículo" onChange={(e) => setFormData({ ...formData, tipoVeiculo: e.target.value })} />
+          <Input placeholder="Transportadora" onChange={(e) => setFormData({ ...formData, transportadora: e.target.value })} />
+          <Input placeholder="Horário de chegada" type="time" onChange={(e) => setFormData({ ...formData, chegada: e.target.value })} />
+          <Input placeholder="Horário de saída" type="time" onChange={(e) => setFormData({ ...formData, saida: e.target.value })} />
+          <Input placeholder="Número do pedido / NF" onChange={(e) => setFormData({ ...formData, pedido: e.target.value })} />
+          <Input placeholder="Cliente / Destino" onChange={(e) => setFormData({ ...formData, cliente: e.target.value })} />
+          <Input placeholder="Endereço de entrega" onChange={(e) => setFormData({ ...formData, endereco: e.target.value })} />
+          <Input placeholder="Tipo de carga" onChange={(e) => setFormData({ ...formData, tipoCarga: e.target.value })} />
+          <Input placeholder="Temperatura ideal" onChange={(e) => setFormData({ ...formData, temperatura: e.target.value })} />
+          <Input placeholder="Conferido por" onChange={(e) => setFormData({ ...formData, conferente: e.target.value })} />
+          <Input placeholder="Nº do lacre (se houver)" onChange={(e) => setFormData({ ...formData, lacre: e.target.value })} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="pt-6">
+          <h2 className="text-xl font-semibold mb-4">Produtos</h2>
+          <div className="grid grid-cols-5 gap-4 mb-4">
+            <Input placeholder="Código" value={formData.produtoTemp.codigo} onChange={(e) => setFormData({ ...formData, produtoTemp: { ...formData.produtoTemp, codigo: e.target.value } })} />
+            <Input placeholder="Descrição" value={formData.produtoTemp.descricao} onChange={(e) => setFormData({ ...formData, produtoTemp: { ...formData.produtoTemp, descricao: e.target.value } })} />
+            <Input placeholder="Qtd. Prevista" value={formData.produtoTemp.quantidadePrevista} onChange={(e) => setFormData({ ...formData, produtoTemp: { ...formData.produtoTemp, quantidadePrevista: e.target.value } })} />
+            <Input placeholder="Qtd. Carregada" value={formData.produtoTemp.quantidadeCarregada} onChange={(e) => setFormData({ ...formData, produtoTemp: { ...formData.produtoTemp, quantidadeCarregada: e.target.value } })} />
+            <Input placeholder="Unidade" value={formData.produtoTemp.unidade} onChange={(e) => setFormData({ ...formData, produtoTemp: { ...formData.produtoTemp, unidade: e.target.value } })} />
+          </div>
+          <Button onClick={adicionarProduto}>Adicionar Produto</Button>
+
+          <Table className="mt-4">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Código</TableHead>
+                <TableHead>Descrição</TableHead>
+                <TableHead>Qtd. Prevista</TableHead>
+                <TableHead>Qtd. Carregada</TableHead>
+                <TableHead>Unidade</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {formData.produtos.map((p, index) => (
+                <TableRow key={index}>
+                  <TableCell>{p.codigo}</TableCell>
+                  <TableCell>{p.descricao}</TableCell>
+                  <TableCell>{p.quantidadePrevista}</TableCell>
+                  <TableCell>{p.quantidadeCarregada}</TableCell>
+                  <TableCell>{p.unidade}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          <div className="flex gap-4 mt-4">
+            <Button onClick={exportarParaExcel}>Exportar para Excel</Button>
+            <Button onClick={exportarParaPDF}>Exportar para PDF</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="pt-6">
+          <h2 className="text-xl font-semibold mb-2">Observações</h2>
+          <Textarea placeholder="Anote qualquer observação importante..." onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
